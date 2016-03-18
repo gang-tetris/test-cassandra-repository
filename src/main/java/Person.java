@@ -1,6 +1,7 @@
 /**
  * Created by pti08 on 3/17/16.
  */
+package org.example.app;
 
 import org.springframework.data.cassandra.mapping.PrimaryKey;
 import org.springframework.data.cassandra.mapping.Table;
