@@ -1,6 +1,8 @@
 /**
  * Created by pti08 on 3/18/16.
  */
+package org.example.app;
+
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
