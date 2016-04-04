@@ -3,24 +3,17 @@
  */
 package org.example.app;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.concurrent.TimeoutException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.cassandra.core.CassandraOperations;
-import org.springframework.data.cassandra.core.CassandraTemplate;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.concurrent.TimeoutException;
 
 public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+    private static final String DEFAULT_HOST = "localhost";
 
     public static void main(String[] args) {
         Repository repository;
@@ -29,7 +22,8 @@ public class Main {
             if (args.length == 0) {
                 repository = new Repository(LOG);
             } else {
-                repository = new Repository(LOG, args[0]);
+                repository = new Repository(LOG, args.length > 0 ? args[0] :
+                        DEFAULT_HOST);
             }
         } catch (UnknownHostException e) {
             LOG.info("Failed");
@@ -37,7 +31,7 @@ public class Main {
             return;
         }
         try {
-            server = new RPCServer("localhost");
+            server = new RPCServer(args.length > 1 ? args[1] : DEFAULT_HOST);
         } catch (IOException e) {
             LOG.info("Failed");
             e.printStackTrace();
