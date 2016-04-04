@@ -3,8 +3,10 @@
  */
 package org.example.app;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,7 @@ public class Main {
 
     public static void main(String[] args) {
         Repository repository;
+        RPCServer server;
         try {
             if (args.length == 0) {
                 repository = new Repository(LOG);
@@ -33,10 +36,24 @@ public class Main {
             e.printStackTrace();
             return;
         }
+        try {
+            server = new RPCServer("localhost");
+        } catch (IOException e) {
+            LOG.info("Failed");
+            e.printStackTrace();
+            return;
+        } catch (TimeoutException e) {
+            LOG.info("Failed");
+            e.printStackTrace();
+            return;
+        }
+        server.run(repository);
+        /*
         repository.insert(new Person("0", "Natalya", 20));
         repository.insert(new Person("1", "Alex", 24));
         repository.select("0");
         repository.truncate();
+        */
         repository.close();
         LOG.info("Finished");
     }

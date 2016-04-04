@@ -13,18 +13,37 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 public class RPCServer {
-
     private static final String RPC_QUEUE_NAME = "rpc_queue";
+    private String host;
+    private Connection connection;
+    private Channel channel;
+    private QueueingConsumer consumer;
 
-    private static int fib(int n) {
+    public RPCServer () throws IOException, TimeoutException {
+        this.host = "localhost";
+        this.connect();
+    }
+
+    public RPCServer (String host) throws IOException, TimeoutException {
+        this.host = host;
+        this.connect();
+    }
+
+    private int fib(int n) {
         if (n == 0) return 0;
         if (n == 1) return 1;
         return fib(n - 1) + fib(n - 2);
     }
 
-    private static void connect(Connection connection, Channel channel,
-                                QueueingConsumer consumer) throws IOException,
-            TimeoutException {
+    private void connect() throws IOException, TimeoutException {
+
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(this.host);
+
+        this.connection = factory.newConnection();
+        this.channel = connection.createChannel();
+        this.consumer = new QueueingConsumer(channel);
+
         channel.queueDeclare(RPC_QUEUE_NAME, false, false, false, null);
 
         channel.basicQos(1);
@@ -34,39 +53,28 @@ public class RPCServer {
         System.out.println(" [x] Awaiting RPC requests");
     }
 
-    private static void operate(String host) {
-        Connection connection = null;
-        Channel channel;
-        QueueingConsumer consumer;
-
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(host);
-
+    public void run(Repository repository) {
         try {
-            connection = factory.newConnection();
-            channel = connection.createChannel();
-            consumer = new QueueingConsumer(channel);
-            connect(connection, channel, consumer);
-            mainLoop(connection, channel, consumer);
+            mainLoop(repository);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (connection != null) {
+            if (this.connection != null) {
                 try {
-                    connection.close();
+                    this.connection.close();
                 } catch (Exception ignore) {
                 }
             }
         }
     }
 
-    private static void mainLoop(Connection connection, Channel channel,
-                                 QueueingConsumer consumer) throws
+    private void mainLoop(Repository repository) throws
             InterruptedException, IOException {
+        int id = 0;
         while (true) {
             String response = null;
 
-            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+            QueueingConsumer.Delivery delivery = this.consumer.nextDelivery();
 
             BasicProperties props = delivery.getProperties();
             BasicProperties replyProps = new BasicProperties
@@ -80,20 +88,19 @@ public class RPCServer {
 
                 System.out.println(" [.] fib(" + message + ")");
                 response = "" + fib(n);
+                repository.insert(new Person(String.valueOf(id), response, 0));
+                id++;
             } catch (Exception e) {
                 System.out.println(" [.] " + e.toString());
                 response = "";
             } finally {
-                channel.basicPublish("", props.getReplyTo(), replyProps,
+                this.channel.basicPublish("", props.getReplyTo(), replyProps,
                         response != null ? response.getBytes("UTF-8") :
                                 "Fail".getBytes("UTF-8"));
 
-                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                this.channel.basicAck(delivery.getEnvelope().getDeliveryTag(),
+                        false);
             }
         }
-    }
-
-    public static void main(String[] argv) {
-        operate("localhost");
     }
 }
