@@ -67,35 +67,37 @@ public class RPCServer {
         }
     }
 
-    private void mainLoop() throws
-            InterruptedException, IOException {
-        JSONParser json = new JSONParser();
+    private void mainLoop() throws InterruptedException, IOException {
         while (true) {
-            String response = null;
+            this.processDelivery();
+        }
+    }
 
-            QueueingConsumer.Delivery delivery = this.consumer.nextDelivery();
+    private void processDelivery () throws InterruptedException, IOException {
+        JSONParser json = new JSONParser();
+        byte [] fail_b = "{success: \"false\"}".getBytes("UTF-8");
+        String response = null;
+        QueueingConsumer.Delivery delivery = this.consumer.nextDelivery();
+        long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+        BasicProperties props = delivery.getProperties();
+        String correlationId = props.getCorrelationId();
+        String routingKey = props.getReplyTo();
+        BasicProperties replyProps = new BasicProperties.Builder()
+                                         .correlationId(correlationId)
+                                         .build();
 
-            BasicProperties props = delivery.getProperties();
-            BasicProperties replyProps = new BasicProperties
-                    .Builder()
-                    .correlationId(props.getCorrelationId())
-                    .build();
+        try {
+            String message = new String(delivery.getBody(), "UTF-8");
+            JSONObject obj = (JSONObject)json.parse(message);
+            response = this.handleQuery(obj);
+        } catch (Exception e) {
+            System.out.println(" [.] " + e.toString());
+        } finally {
+            byte [] response_b = response.getBytes("UTF-8");
+            byte[] body = (response != null) ?  response_b : fail_b;
 
-            try {
-                String message = new String(delivery.getBody(), "UTF-8");
-                JSONObject obj = (JSONObject)json.parse(message);
-                response = this.handleQuery(obj);
-            } catch (Exception e) {
-                System.out.println(" [.] " + e.toString());
-                response = "";
-            } finally {
-                this.channel.basicPublish("", props.getReplyTo(), replyProps,
-                        response != null ? response.getBytes("UTF-8") :
-                                    "Fail".getBytes("UTF-8"));
-
-                this.channel.basicAck(delivery.getEnvelope().getDeliveryTag(),
-                        false);
-            }
+            this.channel.basicPublish("", routingKey, replyProps, body);
+            this.channel.basicAck(deliveryTag, false);
         }
     }
 
