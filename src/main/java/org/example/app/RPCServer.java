@@ -124,8 +124,13 @@ public class RPCServer {
             JSONObject po = new JSONObject();
             String personName = obj.get("name").toString();
             Person p = this.repository.find(personName);
-            response.put("person", p.toJSON());
-            response.put("success", true);
+            if (p == null) {
+                response.put("success", false);
+            }
+            else {
+                response.put("person", p.toJSON());
+                response.put("success", true);
+            }
         }
         else {
             response.put("success", false);
