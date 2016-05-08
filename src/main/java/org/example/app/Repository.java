@@ -60,4 +60,12 @@ public class Repository {
         log.info("Found person " + p);
         return p;
     }
+
+    public Person find (String name) {
+        Select s = QueryBuilder.select().from("person");
+        s.where(QueryBuilder.eq("name", name));
+        Person p = cassandraOps.selectOne(s, Person.class);
+        log.info("Found person " + p);
+        return p;
+    }
 }

@@ -9,6 +9,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
@@ -27,12 +30,6 @@ public class RPCServer {
     public RPCServer (String host) throws IOException, TimeoutException {
         this.host = host;
         this.connect();
-    }
-
-    private int fib(int n) {
-        if (n == 0) return 0;
-        if (n == 1) return 1;
-        return fib(n - 1) + fib(n - 2);
     }
 
     private void connect() throws IOException, TimeoutException {
@@ -70,7 +67,6 @@ public class RPCServer {
 
     private void mainLoop(Repository repository) throws
             InterruptedException, IOException {
-        int id = 0;
         while (true) {
             String response = null;
 
@@ -84,19 +80,18 @@ public class RPCServer {
 
             try {
                 String message = new String(delivery.getBody(), "UTF-8");
-                int n = Integer.parseInt(message);
+                JSONObject obj = (JSONObject) (new JSONParser()).parse(message);
+                System.out.println(" [.] Got message " + obj.toJSONString());
+                response = "Inserted " + message;
 
-                System.out.println(" [.] fib(" + message + ")");
-                response = "" + fib(n);
-                repository.insert(new Person(String.valueOf(id), response, 0));
-                id++;
+                repository.insert(new Person(obj.get("name").toString(), Integer.parseInt(obj.get("age").toString())));
             } catch (Exception e) {
                 System.out.println(" [.] " + e.toString());
                 response = "";
             } finally {
                 this.channel.basicPublish("", props.getReplyTo(), replyProps,
                         response != null ? response.getBytes("UTF-8") :
-                                "Fail".getBytes("UTF-8"));
+                                    "Fail".getBytes("UTF-8"));
 
                 this.channel.basicAck(delivery.getEnvelope().getDeliveryTag(),
                         false);
