@@ -42,12 +42,6 @@ public class Main {
             return;
         }
         server.run(repository);
-        /*
-        repository.insert(new Person("0", "Natalya", 20));
-        repository.insert(new Person("1", "Alex", 24));
-        repository.select("0");
-        repository.truncate();
-        */
         repository.close();
         LOG.info("Finished");
     }
