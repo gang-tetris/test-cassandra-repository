@@ -88,8 +88,9 @@ public class RPCServer {
 
         try {
             String message = new String(delivery.getBody(), "UTF-8");
-            JSONObject obj = (JSONObject)json.parse(message);
-            response = this.handleQuery(obj);
+            JSONObject msg = (JSONObject)json.parse(message);
+            System.out.println(" [.] Got message " + msg.toJSONString());
+            response = this.handleQuery(msg);
         } catch (Exception e) {
             System.out.println(" [.] " + e.toString());
         } finally {
@@ -101,41 +102,51 @@ public class RPCServer {
         }
     }
 
-    private String handleQuery(JSONObject obj) {
-        System.out.println(" [.] Got message " + obj.toJSONString());
-        JSONObject response = new JSONObject();
-
-        String operation = obj.get("op").toString();
-        System.out.println(" [.] Operation " + operation);
+    private String handleQuery(JSONObject msg) {
+        JSONObject response = null;
+        String operation = msg.get("op").toString();
         if (operation.equals("insert")) {
-            String personName = obj.get("name").toString();
-            int personAge = Integer.parseInt(obj.get("age").toString());
-
-            if (this.repository.find(personName) != null) {
-                response.put("success", false);
-            }
-            else {
-                Person p = new Person(personName, personAge);
-                this.repository.insert(p);
-                response.put("success", true);
-            }
+            response = this.handleInsert(msg);
         }
         else if (operation.equals("select")) {
-            JSONObject po = new JSONObject();
-            String personName = obj.get("name").toString();
-            Person p = this.repository.find(personName);
-            if (p == null) {
-                response.put("success", false);
-            }
-            else {
-                response.put("person", p.toJSON());
-                response.put("success", true);
-            }
+            response = this.handleSelect(msg);
         }
         else {
+            response = new JSONObject();
             response.put("success", false);
         }
-
         return response.toString();
+    }
+
+    private JSONObject handleSelect(JSONObject msg) {
+        JSONObject response = new JSONObject();
+        JSONObject po = new JSONObject();
+        String personName = msg.get("name").toString();
+        Person p = this.repository.find(personName);
+
+        if (p == null) {
+            response.put("success", false);
+        }
+        else {
+            response.put("person", p.toJSON());
+            response.put("success", true);
+        }
+        return response;
+    }
+
+    private JSONObject handleInsert(JSONObject msg) {
+        JSONObject response = new JSONObject();
+        String personName = msg.get("name").toString();
+        int personAge = Integer.parseInt(msg.get("age").toString());
+
+        if (this.repository.find(personName) != null) {
+            response.put("success", false);
+        }
+        else {
+            Person p = new Person(personName, personAge);
+            this.repository.insert(p);
+            response.put("success", true);
+        }
+        return response;
     }
 }
