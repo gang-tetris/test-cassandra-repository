@@ -10,5 +10,6 @@
 
 docker run --rm -it -v $(pwd):/src/ \
            --link cassandra:cassandra --link rabbit:rabbit \
+           --link hazelcast:hazelcast \
            -it maven:3 sh -c "cd /src/ && bash"
 
