@@ -125,8 +125,12 @@ public class RPCServer {
         Person p = this.repository.find(personName);
 
         if (p == null) {
+            JSONObject error = new JSONObject();
+            error.put("msg", "Person not found");
+            error.put("code", 404);
+
             response.put("success", false);
-            response.put("error", "Person not found");
+            response.put("error", error);
         }
         else {
             response.put("person", p.toJSON());
@@ -141,8 +145,12 @@ public class RPCServer {
         int personAge = Integer.parseInt(msg.get("age").toString());
 
         if (this.repository.find(personName) != null) {
+            JSONObject error = new JSONObject();
+            error.put("msg", "Person already exists");
+            error.put("code", 402);
+
             response.put("success", false);
-            response.put("error", "Person already exists");
+            response.put("error", error);
         }
         else {
             Person p = new Person(personName, personAge);
