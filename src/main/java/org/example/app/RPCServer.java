@@ -126,6 +126,7 @@ public class RPCServer {
 
         if (p == null) {
             response.put("success", false);
+            response.put("error", "Person not found");
         }
         else {
             response.put("person", p.toJSON());
@@ -141,10 +142,11 @@ public class RPCServer {
 
         if (this.repository.find(personName) != null) {
             response.put("success", false);
+            response.put("error", "Person already exists");
         }
         else {
             Person p = new Person(personName, personAge);
-            this.repository.insert(p);
+            response.put("person", this.repository.insert(p).toJSON());
             response.put("success", true);
         }
         return response;
