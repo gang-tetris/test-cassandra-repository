@@ -22,15 +22,18 @@ public class RPCServer {
     private Channel channel;
     private QueueingConsumer consumer;
     private Repository repository;
+    private PersonCache personCache;
 
     public RPCServer () throws IOException, TimeoutException {
         this.host = "localhost";
         this.connect();
+        this.personCache = new PersonCache();
     }
 
     public RPCServer (String host) throws IOException, TimeoutException {
         this.host = host;
         this.connect();
+        this.personCache = new PersonCache();
     }
 
     private void connect() throws IOException, TimeoutException {
@@ -143,8 +146,14 @@ public class RPCServer {
         JSONObject response = new JSONObject();
         String personName = msg.get("name").toString();
         int personAge = Integer.parseInt(msg.get("age").toString());
+        Person p = new Person(personName, personAge);
+        boolean personCached = !this.personCache.cachePerson(p.getName(), p.getId());
 
-        if (this.repository.find(personName) != null) {
+        if (personCached || this.repository.find(personName) != null) {
+            System.out.println("Exists");
+            if (!personCached) {
+                this.personCache.forgetPerson(p.getName());
+            }
             JSONObject error = new JSONObject();
             error.put("msg", "Person already exists");
             error.put("code", 402);
@@ -153,9 +162,9 @@ public class RPCServer {
             response.put("error", error);
         }
         else {
-            Person p = new Person(personName, personAge);
             response.put("person", this.repository.insert(p).toJSON());
             response.put("success", true);
+            this.personCache.forgetPerson(p.getName());
         }
         return response;
     }
