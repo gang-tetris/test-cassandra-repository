@@ -48,9 +48,10 @@ public class Repository {
         log.info("Truncated");
     }
 
-    public void insert (Person p) {
+    public Person insert (Person p) {
         cassandraOps.insert(p);
         log.info("Inserted person " + p);
+        return p;
     }
 
     public Person select (String id) {
