@@ -1,0 +1,10 @@
+services:
+- docker
+before_install:
+- curl https://raw.githubusercontent.com/gang-tetris/test-services-integration-test/master/update-config.sh -o update-config.sh
+- curl https://raw.githubusercontent.com/gang-tetris/test-services-integration-test/master/config-update.json -o config-update.json
+script:
+- docker build .
+after_success:
+- bash update-config.sh "gang-tetris/test-services-integration-test" "test-cassandra-repository"
+
