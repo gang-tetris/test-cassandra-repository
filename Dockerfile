@@ -3,7 +3,7 @@ FROM maven:3
 WORKDIR /usr/src/app
 
 RUN apt-get update
-RUN apt-get install vim curl wget -y
+RUN apt-get install curl wget netcat -y
 
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 
