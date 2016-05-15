@@ -8,9 +8,7 @@ until netcat -z -w 2 rabbit 5672; do sleep 1; done
 #    sleep 1
 #done
 
-until wget --spider cassandra:9042; do sleep 1 done
+until wget --spider "cassandra:9042"; do sleep 1; done
 
-exec run_migrations.sh
-
-mvn exec:java -Dexec.mainClass='org.example.app.Main' -Dexec.args="cassandra rabbit"
+mvn exec:java -Dexec.mainClass="org.example.app.Main" -Dexec.args="cassandra rabbit"
 
