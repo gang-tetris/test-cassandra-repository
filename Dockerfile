@@ -1,9 +1,13 @@
 FROM maven:3
 
 WORKDIR /usr/src/app
+COPY . .
+RUN mvn package
 
 RUN apt-get update
-RUN apt-get install vim -y
+RUN apt-get install curl wget netcat -y
 
-CMD mvn exec:java -Dexec.mainClass='org.example.app.Main' -Dexec.args="cassandra rabbit"
+COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Script to run Cassandra migrations for docker container with Cassandra
 
 # Receives optional positional argument with Cassandra container name,
