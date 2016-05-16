@@ -11,9 +11,13 @@ import com.rabbitmq.client.QueueingConsumer;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.concurrent.TimeoutException;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.hazelcast.client.HazelcastClientNotActiveException;
 
 public class RPCServer {
     private static final String RPC_QUEUE_NAME = "java_queue";
@@ -58,7 +62,11 @@ public class RPCServer {
         this.repository = repository;
         try {
             mainLoop();
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (this.connection != null) {
@@ -70,13 +78,25 @@ public class RPCServer {
         }
     }
 
-    private void mainLoop() throws InterruptedException, IOException {
+    private void mainLoop() throws InterruptedException,
+            UnsupportedEncodingException, IOException {
         while (true) {
             this.processDelivery();
         }
     }
 
-    private void processDelivery () throws InterruptedException, IOException {
+    private JSONObject getErrorResponse(String message, long status) {
+        JSONObject response = new JSONObject();
+        JSONObject err = new JSONObject();
+        err.put("code", status);
+        err.put("msg", message);
+        response.put("success", false);
+        response.put("error", err);
+        return response;
+    }
+
+    private void processDelivery () throws InterruptedException,
+            UnsupportedEncodingException, IOException {
         JSONParser json = new JSONParser();
         byte [] fail_b = "{success: \"false\"}".getBytes("UTF-8");
         String response = null;
@@ -89,13 +109,23 @@ public class RPCServer {
                                          .correlationId(correlationId)
                                          .build();
 
+        String message = new String(delivery.getBody(), "UTF-8");
         try {
-            String message = new String(delivery.getBody(), "UTF-8");
             JSONObject msg = (JSONObject)json.parse(message);
             System.out.println(" [.] Got message " + msg.toJSONString());
             response = this.handleQuery(msg);
-        } catch (Exception e) {
-            System.out.println(" [.] " + e.toString());
+        } catch (ParseException e) {
+            response = this.getErrorResponse(
+                    "Malformed query \"" + message + "\": " + e.toString(),
+                    400).toString();
+        } catch (NoHostAvailableException e) {
+            response = this.getErrorResponse(
+                    "Cassandra is not available: " + e.toString(),
+                    503).toString();
+        } catch (HazelcastClientNotActiveException e) {
+            response = this.getErrorResponse(
+                    "Hazelcast is not available: " + e.toString(),
+                    503).toString();
         } finally {
             byte [] response_b = response.getBytes("UTF-8");
             byte[] body = (response != null) ?  response_b : fail_b;
@@ -108,6 +138,7 @@ public class RPCServer {
     private String handleQuery(JSONObject msg) {
         JSONObject response = null;
         String operation = msg.get("op").toString();
+
         if (operation.equals("insert")) {
             response = this.handleInsert(msg);
         }
@@ -115,8 +146,8 @@ public class RPCServer {
             response = this.handleSelect(msg);
         }
         else {
-            response = new JSONObject();
-            response.put("success", false);
+            response = this.getErrorResponse(
+                    "Unknown operation \"" + operation + "\"", 400);
         }
         return response.toString();
     }
@@ -128,12 +159,7 @@ public class RPCServer {
         Person p = this.repository.find(personName);
 
         if (p == null) {
-            JSONObject error = new JSONObject();
-            error.put("msg", "Person not found");
-            error.put("code", 404);
-
-            response.put("success", false);
-            response.put("error", error);
+            response = this.getErrorResponse("Person not found", 404);
         }
         else {
             response.put("person", p.toJSON());
@@ -154,12 +180,7 @@ public class RPCServer {
             if (!personCached) {
                 this.personCache.forgetPerson(p.getName());
             }
-            JSONObject error = new JSONObject();
-            error.put("msg", "Person already exists");
-            error.put("code", 402);
-
-            response.put("success", false);
-            response.put("error", error);
+            response = this.getErrorResponse("Person already exists", 402);
         }
         else {
             response.put("person", this.repository.insert(p).toJSON());
