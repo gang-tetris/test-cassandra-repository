@@ -10,5 +10,5 @@ done
 
 until wget --spider "cassandra:9042"; do sleep 1; done
 
-mvn exec:java -Dexec.mainClass="org.example.app.Main" -Dexec.args="cassandra rabbit"
+java -cp target/maven-example-1.0-SNAPSHOT.jar org.example.app.Main cassandra rabbit
 
