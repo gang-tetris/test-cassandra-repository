@@ -4,6 +4,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import org.slf4j.Logger;
 import org.springframework.data.cassandra.core.CassandraOperations;
 import org.springframework.data.cassandra.core.CassandraTemplate;
@@ -48,13 +49,13 @@ public class Repository {
         log.info("Truncated");
     }
 
-    public Person insert (Person p) {
+    public Person insert (Person p) throws NoHostAvailableException {
         cassandraOps.insert(p);
         log.info("Inserted person " + p);
         return p;
     }
 
-    public Person select (String id) {
+    public Person select (String id) throws NoHostAvailableException {
         Select s = QueryBuilder.select().from("person");
         s.where(QueryBuilder.eq("id", id));
         Person p = cassandraOps.selectOne(s, Person.class);
@@ -62,7 +63,7 @@ public class Repository {
         return p;
     }
 
-    public Person find (String name) {
+    public Person find (String name) throws NoHostAvailableException {
         Select s = QueryBuilder.select().from("person");
         s.where(QueryBuilder.eq("name", name));
         Person p = cassandraOps.selectOne(s, Person.class);
