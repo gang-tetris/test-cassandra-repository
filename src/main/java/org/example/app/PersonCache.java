@@ -15,6 +15,7 @@ public class PersonCache {
     public PersonCache () {
         ClientConfig cfg = new ClientConfig();
         cfg.addAddress("hazelcast:5701");
+        cfg.setConnectionAttemptLimit(100);
         cfg.getGroupConfig().setName( "app1" ).setPassword( "app1-pass" );
         this.instance = HazelcastClient.newHazelcastClient(cfg);
         this.map = instance.getMap("person");
