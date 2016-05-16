@@ -10,5 +10,6 @@ done
 
 until wget --spider "cassandra:9042"; do sleep 1; done
 
-java -cp target/maven-example-1.0-SNAPSHOT.jar org.example.app.Main cassandra rabbit
+java -cp target/maven-example-1.0-SNAPSHOT.jar org.example.app.Main \
+         cassandra rabbit $(hostname)
 

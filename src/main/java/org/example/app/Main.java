@@ -14,6 +14,7 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final String DEFAULT_HOST = "localhost";
+    private static final String DEFAULT_HOSTNAME = "Repository";
 
     public static void main(String[] args) {
         Repository repository;
@@ -31,7 +32,9 @@ public class Main {
             return;
         }
         try {
-            server = new RPCServer(args.length > 1 ? args[1] : DEFAULT_HOST);
+            server = new RPCServer(
+                         args.length > 1 ? args[1] : DEFAULT_HOST,
+                         args.length > 2 ? args[2] : DEFAULT_HOSTNAME);
         } catch (IOException e) {
             LOG.info("Failed");
             e.printStackTrace();

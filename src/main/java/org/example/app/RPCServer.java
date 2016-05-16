@@ -22,20 +22,17 @@ import com.hazelcast.client.HazelcastClientNotActiveException;
 public class RPCServer {
     private static final String RPC_QUEUE_NAME = "java_queue";
     private String host;
+    private String hostname;
     private Connection connection;
     private Channel channel;
     private QueueingConsumer consumer;
     private Repository repository;
     private PersonCache personCache;
 
-    public RPCServer () throws IOException, TimeoutException {
-        this.host = "localhost";
-        this.connect();
-        this.personCache = new PersonCache();
-    }
-
-    public RPCServer (String host) throws IOException, TimeoutException {
+    public RPCServer (String host, String hostname) throws IOException,
+                                                           TimeoutException {
         this.host = host;
+        this.hostname = hostname;
         this.connect();
         this.personCache = new PersonCache();
     }
@@ -154,6 +151,7 @@ public class RPCServer {
 
     private JSONObject handleSelect(JSONObject msg) {
         JSONObject response = new JSONObject();
+        JSONObject result = new JSONObject();
         JSONObject po = new JSONObject();
         String personName = msg.get("name").toString();
         Person p = this.repository.find(personName);
@@ -162,7 +160,9 @@ public class RPCServer {
             response = this.getErrorResponse("Person not found", 404);
         }
         else {
-            response.put("person", p.toJSON());
+            result.put("person", this.repository.insert(p).toJSON());
+            result.put("repository", this.hostname);
+            response.put("response", result);
             response.put("success", true);
         }
         return response;
@@ -170,6 +170,7 @@ public class RPCServer {
 
     private JSONObject handleInsert(JSONObject msg) {
         JSONObject response = new JSONObject();
+        JSONObject result = new JSONObject();
         String personName = msg.get("name").toString();
         int personAge = Integer.parseInt(msg.get("age").toString());
         Person p = new Person(personName, personAge);
@@ -183,7 +184,9 @@ public class RPCServer {
             response = this.getErrorResponse("Person already exists", 402);
         }
         else {
-            response.put("person", this.repository.insert(p).toJSON());
+            result.put("person", this.repository.insert(p).toJSON());
+            result.put("repository", this.hostname);
+            response.put("response", result);
             response.put("success", true);
             this.personCache.forgetPerson(p.getName());
         }
